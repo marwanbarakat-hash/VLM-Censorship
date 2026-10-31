@@ -1,0 +1,24 @@
+# Python virtual environments (covers root and subfolders)
+**/.venv/
+.venv/
+backend/.venv/
+**/__pycache__/
+*.pyc
+
+# Model weights
+*.pt
+*.onnx
+*.engine
+
+# Native builds
+native/build/*
+!native/build/.gitkeep
+
+# Node / Next.js
+node_modules/
+**/node_modules/
+.next/
+**/out/
+
+# OS artifacts
+.DS_Store
