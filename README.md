@@ -3,7 +3,7 @@
 A privacy-preserving screen and video redaction system utilizing **YOLO-World** open-vocabulary zero-shot detection, a **FastAPI** control bridge, and a native **C++ memory-safe coordination engine** hardened with LLVM AddressSanitizer (ASan).
 
 <p align="center">
-  <img src="assets/demo.gif" alt="Privacy Shield Live Demo" width="800px">
+  <img src="assets/demo_new.gif" alt="Privacy Shield Live Demo" width="800px">
 </p>
 
 The system supports real-time screen capture with Apple Silicon GPU acceleration (`mps`) on macOS, as well as containerized deployment via Docker for headless inference and microservice architectures.
