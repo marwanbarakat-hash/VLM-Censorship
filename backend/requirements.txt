@@ -1,12 +1,10 @@
-fastapi
-uvicorn
+flask
+flask-cors
+pynput
 ultralytics
-opencv-python-headless
+opencv-python
 torch
 torchvision
 mss
-pydantic
 numpy
-ftfy
-regex
 git+https://github.com/openai/CLIP.git

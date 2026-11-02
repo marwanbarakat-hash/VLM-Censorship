@@ -6,7 +6,15 @@
 #include <mutex>
 #include <sstream>
 #include <algorithm>
+#include <chrono>
 #include <opencv2/opencv.hpp>
+
+#ifdef __APPLE__
+#define NS_PRIVATE_IMPLEMENTATION
+#define CA_PRIVATE_IMPLEMENTATION
+#define MTL_PRIVATE_IMPLEMENTATION
+#include <Metal/Metal.hpp>
+#endif
 
 struct SafeBox {
     int x1, y1, x2, y2;
@@ -20,6 +28,75 @@ struct EngineState {
 };
 
 static EngineState g_state;
+
+// Cross-platform MetalContext wrapper
+class MetalContext {
+public:
+    bool initialize() {
+#ifdef __APPLE__
+        device = MTL::CreateSystemDefaultDevice();
+        if (!device) {
+            std::cerr << "[!] Error: Failed to find a default Metal device." << std::endl;
+            return false;
+        }
+        std::cout << "[*] Metal Initialized on GPU: " << device->name()->utf8String() << std::endl;
+
+        commandQueue = device->newCommandQueue();
+        if (!commandQueue) {
+            std::cerr << "[!] Error: Failed to create Metal command queue." << std::endl;
+            return false;
+        }
+
+        const char* kernelSource = R"metal(
+            kernel void box_blur(texture2d<float, access::read_write> tex [[texture(0)]],
+                                 uint2 gid [[thread_position_in_grid]]) 
+            {
+                if (gid.x >= tex.get_width() || gid.y >= tex.get_height()) return;
+                float4 color = tex.read(gid);
+                tex.write(color, gid);
+            }
+        )metal";
+
+        NS::Error* error = nullptr;
+        MTL::Library* library = device->newLibrary(
+            NS::String::string(kernelSource, NS::UTF8StringEncoding), 
+            nullptr, 
+            &error
+        );
+        
+        if (!library) {
+            std::cerr << "[!] Metal Shader Compilation Error: " << error->localizedDescription()->utf8String() << std::endl;
+            return false;
+        }
+
+        MTL::Function* blurFunc = library->newFunction(NS::String::string("box_blur", NS::UTF8StringEncoding));
+        blurPipelineState = device->newComputePipelineState(blurFunc, &error);
+        
+        blurFunc->release();
+        library->release();
+
+        std::cout << "[+] Metal Compute Pipeline Compiled Successfully." << std::endl;
+        return true;
+#else
+        std::cout << "[*] Linux/Docker environment detected: Metal acceleration skipped (CPU fallback mode)." << std::endl;
+        return true;
+#endif
+    }
+
+    ~MetalContext() {
+#ifdef __APPLE__
+        if (blurPipelineState) blurPipelineState->release();
+        if (commandQueue) commandQueue->release();
+        if (device) device->release();
+#endif
+    }
+
+#ifdef __APPLE__
+    MTL::Device* device = nullptr;
+    MTL::CommandQueue* commandQueue = nullptr;
+    MTL::ComputePipelineState* blurPipelineState = nullptr;
+#endif
+};
 
 void stdin_listener() {
     std::string line;
@@ -69,13 +146,18 @@ void stdin_listener() {
 }
 
 int main() {
-    std::cout << "[*] C++ Native Memory-Safe Shield Active (ASan Enabled)" << std::endl;
+    std::cout << "[*] C++ Native Memory-Safe Shield Active" << std::endl;
+
+    MetalContext mtlContext;
+    if (!mtlContext.initialize()) {
+        std::cerr << "[!] Warning: Metal initialization failed." << std::endl;
+    }
 
     std::thread listener(stdin_listener);
     listener.detach();
 
     while (!g_state.should_quit.load()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 
     return 0;

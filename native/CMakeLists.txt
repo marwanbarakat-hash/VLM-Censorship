@@ -26,3 +26,24 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 add_executable(censor_engine src/main.cpp)
 
 target_link_libraries(censor_engine PRIVATE ${OpenCV_LIBS})
+
+if(APPLE)
+    # Link Metal and Cocoa frameworks only on macOS
+    target_link_libraries(censor_engine PRIVATE "-framework Metal" "-framework Foundation" "-framework QuartzCore")
+endif()
+
+include(FetchContent)
+
+FetchContent_Declare(
+    Metal
+    GIT_REPOSITORY https://github.com/Unbinilium/Metal.git
+    GIT_TAG main
+    GIT_SHALLOW 1
+)
+
+FetchContent_GetProperties(Metal)
+if(NOT Metal_POPULATED)
+    FetchContent_MakeAvailable(Metal)
+endif()
+
+target_link_libraries(censor_engine PUBLIC Metal)

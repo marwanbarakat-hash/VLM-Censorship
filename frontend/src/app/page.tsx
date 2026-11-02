@@ -4,11 +4,7 @@ import { useState } from 'react';
 
 export default function Home() {
   const [inputVal, setInputVal] = useState('');
-  const [activeTargets, setActiveTargets] = useState<string[]>([
-    'credit card digits',
-    'passwords',
-    'id numbers'
-  ]);
+  const [activeTargets, setActiveTargets] = useState<string[]>([]);
   const [status, setStatus] = useState<string | null>(null);
 
   const syncBackend = async (targets: string[]) => {
